@@ -11,6 +11,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/zillolo/stash/stash"
 )
 
 const (
@@ -56,8 +57,8 @@ func InitDB() (db *gorm.DB, err error) {
 		return nil, err
 	}
 
-	if !db.HasTable(&Entry{}) {
-		db.CreateTable(&Entry{})
+	if !db.HasTable(&stash.Entry{}) {
+		db.CreateTable(&stash.Entry{})
 	}
 	return db, nil
 }
@@ -73,7 +74,7 @@ func Hide(db *gorm.DB, root string) (err error) {
 		return err
 	}
 
-	if err := Pack(root, file); err != nil {
+	if err := stash.Pack(root, file); err != nil {
 		return err
 	}
 
@@ -83,7 +84,7 @@ func Hide(db *gorm.DB, root string) (err error) {
 		return err
 	}
 
-	entry := Entry{Path: absPath}
+	entry := stash.Entry{Path: absPath}
 	db.Create(&entry)
 	return nil
 }
@@ -103,7 +104,7 @@ func Restore(path string) (err error) {
 		return err
 	}
 
-	if err := Unpack(filepath.Dir(path), file); err != nil {
+	if err := stash.Unpack(filepath.Dir(path), file); err != nil {
 		return err
 	}
 	return nil

@@ -1,4 +1,4 @@
-package main
+package stash
 
 import "github.com/jinzhu/gorm"
 

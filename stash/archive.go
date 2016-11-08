@@ -26,7 +26,6 @@ func Pack(source string, writers ...io.Writer) error {
 
 func addFile(root string, w *tar.Writer) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
-		log.Printf("Processing %v\n", path)
 		// If we get passed an error, return it immediately.
 		if err != nil {
 			return err
@@ -44,12 +43,12 @@ func addFile(root string, w *tar.Writer) filepath.WalkFunc {
 			return err
 		}
 		header.Name = relPath
-		log.Printf("Saving in archive with path: %v\n", header.Name)
 
 		if err := w.WriteHeader(header); err != nil {
 			return err
 		}
 
+		//TODO: Revert this logic, ie. check for isDir and return
 		if !info.IsDir() {
 			// If we are processing a file (as opposed to a directory) write it's content to the archive.
 			file, err := os.Open(path)
@@ -127,5 +126,4 @@ func Unpack(destination string, r io.Reader) error {
 		}
 
 	}
-	return nil
 }

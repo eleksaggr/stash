@@ -67,3 +67,65 @@ func addFile(root string, w *tar.Writer) filepath.WalkFunc {
 		return nil
 	}
 }
+
+func Unpack(destination string, r io.Reader) error {
+	log.Printf("Extracting to: %v\n", destination)
+	gzipReader, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+	defer gzipReader.Close()
+
+	tarReader := tar.NewReader(gzipReader)
+	if err != nil {
+		return err
+	}
+
+	for {
+		header, err := tarReader.Next()
+
+		// If we hit EOF, the archive is empty.
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			// Skip this file since the header is corrupt.
+			log.Printf("Header corrupt or read error. Skipping file...\n")
+			log.Panicf("%v\n", err)
+			continue
+		}
+
+		target := filepath.Join(destination, header.Name)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if _, err := os.Stat(target); os.IsNotExist(err) {
+				if err = os.MkdirAll(target, 0755|os.ModeDir); err != nil {
+					log.Printf("Error creating directory during extraction. Skipping...\n")
+					log.Panicf("%v\n", err)
+					continue
+				}
+			}
+		case tar.TypeReg:
+			file, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, header.FileInfo().Mode())
+			if err != nil {
+				log.Printf("Error during file creation. Skipping...\n")
+				log.Panicf("%v\n", err)
+				continue
+			}
+			defer file.Close()
+
+			if _, err := io.Copy(file, tarReader); err != nil {
+				log.Printf("Error during writing to file. Skipping...\n")
+				log.Panicf("%v\n", err)
+				continue
+			}
+		default:
+			log.Printf("Wrong header type flag. Skipping...\n")
+			continue
+		}
+
+	}
+	return nil
+}

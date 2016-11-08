@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/base64"
+	"flag"
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -17,7 +19,10 @@ const (
 	DatabaseFile     = "index.db"
 )
 
+var restoreFlag = flag.Bool("restore", false, "Show a hidden file.")
+
 func main() {
+	flag.Parse()
 	InitEnvironment()
 
 	db, err := InitDB()
@@ -25,11 +30,17 @@ func main() {
 		log.Fatalf("%v\n", err)
 	}
 
-	if err := Hide(db, os.Args[1]); err != nil {
-		log.Fatalf("%v\n", err)
+	log.Printf("File: %v\n", flag.Arg(0))
+	if *restoreFlag {
+		if err := Restore(flag.Arg(0)); err != nil {
+			log.Fatalf("%v\n", err)
+		}
+	} else {
+		if err := Hide(db, flag.Arg(0)); err != nil {
+			log.Fatalf("%v\n", err)
+		}
 	}
 }
-
 func InitEnvironment() {
 	path := path.Join(getHome(), DataStoragePath)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -67,12 +78,34 @@ func Hide(db *gorm.DB, root string) (err error) {
 	}
 
 	// Add entry to the database.
-	entry := Entry{Path: root}
+	absPath, err := filepath.Abs(root)
+	if err != nil {
+		return err
+	}
+
+	entry := Entry{Path: absPath}
 	db.Create(&entry)
 	return nil
 }
 
-func Show(path string) (err error) {
+func Restore(path string) (err error) {
+	name := filepath.Join(getDataPath(), computeFilename(path))
+	name += ArchiveExtension
+
+	file, err := os.Open(name)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	if err := Unpack(filepath.Dir(path), file); err != nil {
+		return err
+	}
 	return nil
 }
 

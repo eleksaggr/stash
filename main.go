@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 	InitEnvironment()
 
-	_, err := InitDB()
+	db, err := InitDB()
 	if err != nil {
 		log.Panicf("%v\n", err)
 	}
@@ -33,6 +33,14 @@ func main() {
 
 	source := flag.Arg(0)
 	switch strings.ToLower(flag.Arg(0)) {
+	case "list":
+		source = "."
+		if len(flag.Args()) >= 2 {
+			source = flag.Arg(1)
+		}
+		if err := stash.List(db, source); err != nil {
+			log.Panicf("%v\n", err)
+		}
 	case "release":
 		source = "/home/alex/.local/share/hidden"
 		target := flag.Arg(1)
@@ -41,14 +49,14 @@ func main() {
 		if len(flag.Args()) >= 3 {
 			destination = flag.Arg(2)
 		}
-		if err := stash.Release(source, target, destination); err != nil {
+		if err := stash.Release(db, source, target, destination); err != nil {
 			log.Panicf("%v\n", err)
 		}
 	case "stash":
 		source = flag.Arg(1)
 		fallthrough
 	default:
-		if err := stash.Stash(source, "/home/alex/.local/share/hidden"); err != nil {
+		if err := stash.Stash(db, source, "/home/alex/.local/share/hidden"); err != nil {
 			log.Panicf("%v\n", err)
 		}
 	}

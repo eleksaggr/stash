@@ -23,7 +23,8 @@ func main() {
 	flag.Parse()
 
 	InitEnvironment()
-	InitLogging()
+	file := InitLogging()
+	defer file.Close()
 
 	db, err := InitDB()
 	if err != nil {
@@ -31,7 +32,7 @@ func main() {
 		log.Printf("%v\n", err)
 	}
 
-	if len(flag.Args()) < 2 {
+	if len(flag.Args()) < 1 {
 		flag.Usage()
 	}
 
@@ -69,14 +70,15 @@ func main() {
 	}
 }
 
-func InitLogging() {
-	file, err := os.OpenFile("stash.log", os.O_CREATE|os.O_APPEND, 0666)
+func InitLogging() *os.File {
+	file, err := os.OpenFile("stash.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0777)
 	if err != nil {
-		//TODO: Handle error here.
+		fmt.Printf("Could not create log file.\nMore info: %v\n", err)
 	}
-	defer file.Close()
-
 	log.SetOutput(file)
+	log.Printf("Enabled logging to file.\n")
+
+	return file
 }
 
 func InitEnvironment() {

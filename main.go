@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -20,11 +21,14 @@ const (
 
 func main() {
 	flag.Parse()
+
 	InitEnvironment()
+	InitLogging()
 
 	db, err := InitDB()
 	if err != nil {
-		log.Panicf("%v\n", err)
+		fmt.Printf("There was an error creating the database.\nMore info: %v\n", err)
+		log.Printf("%v\n", err)
 	}
 
 	if len(flag.Args()) < 2 {
@@ -39,7 +43,8 @@ func main() {
 			source = flag.Arg(1)
 		}
 		if err := stash.List(db, source); err != nil {
-			log.Panicf("%v\n", err)
+			fmt.Printf("Could not list entries.\nMore info: %v\n", err)
+			log.Printf("%v\n", err)
 		}
 	case "release":
 		source = "/home/alex/.local/share/hidden"
@@ -50,16 +55,28 @@ func main() {
 			destination = flag.Arg(2)
 		}
 		if err := stash.Release(db, source, target, destination); err != nil {
-			log.Panicf("%v\n", err)
+			fmt.Printf("Could not release.\nMore info: %v\n", err)
+			log.Printf("%v\n", err)
 		}
 	case "stash":
 		source = flag.Arg(1)
 		fallthrough
 	default:
 		if err := stash.Stash(db, source, "/home/alex/.local/share/hidden"); err != nil {
-			log.Panicf("%v\n", err)
+			fmt.Printf("Could not stash files.\nMore info: %v\n", err)
+			log.Printf("%v\n", err)
 		}
 	}
+}
+
+func InitLogging() {
+	file, err := os.OpenFile("stash.log", os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		//TODO: Handle error here.
+	}
+	defer file.Close()
+
+	log.SetOutput(file)
 }
 
 func InitEnvironment() {

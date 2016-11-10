@@ -10,6 +10,11 @@ import (
 	"path/filepath"
 
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for GORM
+)
+
+const (
+	dbFile = "index.db"
 )
 
 // Stash stashes a file or directory by wrapping it into a compressed tar archive.
@@ -118,6 +123,7 @@ func Init(path string) error {
 		return fmt.Errorf("You have specified an invalid directory")
 	}
 
+	// Get the absolute path to our target directory and create any directories that are missing.
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		log.Printf("%v\n", err)
@@ -129,5 +135,16 @@ func Init(path string) error {
 		return fmt.Errorf("Can not create directory")
 	}
 
+	// Create the database in the newly created directory.
+	dbPath := filepath.Join(absPath, dbFile)
+	db, err := gorm.Open("sqlite3", dbPath)
+	if err != nil {
+		log.Printf("Init: %v\n", err)
+		return fmt.Errorf("Can not create database file.")
+	}
+
+	if !db.HasTable(&Entry{}) {
+		db.CreateTable(&Entry{})
+	}
 	return nil
 }

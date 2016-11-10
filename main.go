@@ -8,8 +8,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/zillolo/stash/stash"
 )
 
@@ -21,15 +19,6 @@ const (
 
 func main() {
 	flag.Parse()
-
-	file := InitLogging()
-	defer file.Close()
-
-	db, err := InitDB()
-	if err != nil {
-		fmt.Printf("There was an error creating the database.\nMore info: %v\n", err)
-		log.Printf("%v\n", err)
-	}
 
 	if len(flag.Args()) < 1 {
 		flag.Usage()
@@ -79,59 +68,6 @@ func main() {
 		}
 	}
 }
-
-func InitLogging() *os.File {
-	file, err := os.OpenFile("stash.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0777)
-	if err != nil {
-		fmt.Printf("Could not create log file.\nMore info: %v\n", err)
-	}
-	log.SetOutput(file)
-	log.Printf("Enabled logging to file.\n")
-
-	return file
-}
-
-func InitEnvironment() {
-	path := path.Join(getHome(), DataStoragePath)
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err = os.Mkdir(path, 0755|os.ModeDir); err != nil {
-			panic(err)
-		}
-	}
-}
-
-func InitDB() (db *gorm.DB, err error) {
-	db, err = gorm.Open("sqlite3", path.Join(getHome(), DataStoragePath, DatabaseFile))
-	if err != nil {
-		return nil, err
-	}
-
-	if !db.HasTable(&stash.Entry{}) {
-		db.CreateTable(&stash.Entry{})
-	}
-	return db, nil
-}
-
-//func Restore(path string) (err error) {
-//	name := filepath.Join(getDataPath(), computeFilename(path))
-//	name += ArchiveExtension
-//
-//	file, err := os.Open(name)
-//	if err != nil {
-//		return err
-//	}
-//	defer file.Close()
-//
-//	path, err = filepath.Abs(path)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if err := stash.Unpack(filepath.Dir(path), file); err != nil {
-//		return err
-//	}
-//	return nil
-//}
 
 func getHome() string {
 	homePath := os.Getenv("HOME")

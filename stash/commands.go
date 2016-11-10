@@ -112,3 +112,22 @@ func List(db *gorm.DB, source string) error {
 	}
 	return nil
 }
+
+func Init(path string) error {
+	if path == "" {
+		return fmt.Errorf("You have specified an invalid directory")
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		log.Printf("%v\n", err)
+		return fmt.Errorf("Can not find absolute path of \"%v\"", path)
+	}
+
+	if err := os.MkdirAll(absPath, 0644); err != nil {
+		log.Printf("%v\n", err)
+		return fmt.Errorf("Can not create directory")
+	}
+
+	return nil
+}

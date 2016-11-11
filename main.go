@@ -4,20 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for GORM
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zillolo/stash/stash"
-)
-
-const (
-	ArchiveExtension = ".tar.gz"
-	DataStoragePath  = "/.local/share/hidden"
-	DatabaseFile     = "index.db"
 )
 
 func main() {
@@ -25,6 +19,19 @@ func main() {
 
 	if len(flag.Args()) < 1 {
 		flag.Usage()
+		return
+	}
+
+	if strings.ToLower(flag.Arg(0)) == "init" {
+		if len(flag.Args()) < 2 {
+			flag.Usage()
+			return
+		}
+		target := flag.Arg(1)
+
+		if err := stash.Init(target); err != nil {
+			fmt.Printf("%v.\n", err)
+		}
 		return
 	}
 
@@ -41,18 +48,15 @@ func main() {
 		return
 	}
 
+	db, err := gorm.Open("sqlite3", config.DataDir)
+	if err != nil {
+		log.Printf("Main: %v\n", err)
+		fmt.Printf("Can not connect to database.\n")
+		return
+	}
+
 	source := flag.Arg(0)
 	switch strings.ToLower(flag.Arg(0)) {
-	case "init":
-		if len(flag.Args()) < 2 {
-			flag.Usage()
-			return
-		}
-		target := flag.Arg(1)
-
-		if err := stash.Init(target); err != nil {
-			fmt.Printf("%v.\n", err)
-		}
 	case "list":
 		source = "."
 		if len(flag.Args()) >= 2 {
@@ -91,16 +95,4 @@ func readConfig(path string) (*stash.Config, error) {
 		return nil, fmt.Errorf("Could not read configuration file. Did you call \"stash init\"?")
 	}
 	return config, nil
-}
-
-func getHome() string {
-	homePath := os.Getenv("HOME")
-	if homePath == "" {
-		panic("Hide may not be used by non-humans.")
-	}
-	return homePath
-}
-
-func getDataPath() string {
-	return path.Join(getHome(), DataStoragePath)
 }

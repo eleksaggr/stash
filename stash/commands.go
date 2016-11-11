@@ -1,20 +1,27 @@
 package stash
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/BurntSushi/toml"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for GORM
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 const (
-	dbFile = "index.db"
+	confFile = "stash.conf"
+	dbFile   = "index.db"
+
+	logDir = ".cache/stash/logs"
 )
 
 // Stash stashes a file or directory by wrapping it into a compressed tar archive.
@@ -99,6 +106,7 @@ func Release(db *gorm.DB, source string, target string, destination string) erro
 	return nil
 }
 
+// List lists all stashed objects that match the source path.
 func List(db *gorm.DB, source string) error {
 	if db == nil {
 		return fmt.Errorf("Db was nil")
@@ -118,6 +126,8 @@ func List(db *gorm.DB, source string) error {
 	return nil
 }
 
+// Init initalizes the environment by creating directories, databases and configuration files
+// needed by the application.
 func Init(path string) error {
 	if path == "" {
 		return fmt.Errorf("You have specified an invalid directory")
@@ -140,11 +150,39 @@ func Init(path string) error {
 	db, err := gorm.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Printf("Init: %v\n", err)
-		return fmt.Errorf("Can not create database file.")
+		return fmt.Errorf("Can not create database file")
 	}
 
 	if !db.HasTable(&Entry{}) {
 		db.CreateTable(&Entry{})
 	}
+
+	// Create the log file directory
+	homePath, err := homedir.Dir()
+	logPath := filepath.Join(homePath, logDir)
+	if err != nil {
+		log.Printf("Init: %v\n", err)
+		return fmt.Errorf("Can not retrieve home directory for current user")
+	}
+
+	confPath := filepath.Join(absPath, confFile)
+	config := Config{
+		DataDir:  absPath,
+		ConfPath: confPath,
+		LogDir:   logPath,
+	}
+
+	var buffer bytes.Buffer
+	encoder := toml.NewEncoder(&buffer)
+	if err := encoder.Encode(&config); err != nil {
+		log.Printf("Init: %v\n", err)
+		return fmt.Errorf("Could not encode configuration file to TOML.")
+	}
+
+	if err := ioutil.WriteFile(confPath, buffer.Bytes(), 0644); err != nil {
+		log.Printf("Init: %v\n", err)
+		return fmt.Errorf("Can not write to configuration file")
+	}
+
 	return nil
 }

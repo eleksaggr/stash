@@ -6,8 +6,11 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
+	"github.com/BurntSushi/toml"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zillolo/stash/stash"
 )
 
@@ -22,6 +25,19 @@ func main() {
 
 	if len(flag.Args()) < 1 {
 		flag.Usage()
+		return
+	}
+
+	homePath, err := homedir.Dir()
+	if err != nil {
+		fmt.Printf("Can not retrieve home path for current user.\n")
+		return
+	}
+
+	configPath := filepath.Join(homePath, "/.local/share/stash/stash.conf")
+	config, err := readConfig(configPath)
+	if err != nil {
+		fmt.Printf("%v\n", err)
 		return
 	}
 
@@ -67,6 +83,14 @@ func main() {
 			log.Printf("%v\n", err)
 		}
 	}
+}
+
+func readConfig(path string) (*stash.Config, error) {
+	config := new(stash.Config)
+	if _, err := toml.DecodeFile(path, config); err != nil {
+		return nil, fmt.Errorf("Could not read configuration file. Did you call \"stash init\"?")
+	}
+	return config, nil
 }
 
 func getHome() string {

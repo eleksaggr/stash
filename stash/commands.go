@@ -165,11 +165,9 @@ func Init(path string) error {
 		return fmt.Errorf("Can not retrieve home directory for current user")
 	}
 
-	confPath := filepath.Join(absPath, confFile)
 	config := Config{
-		DataDir:  absPath,
-		ConfPath: confPath,
-		LogDir:   logPath,
+		DataDir: absPath,
+		LogDir:  logPath,
 	}
 
 	var buffer bytes.Buffer
@@ -179,6 +177,7 @@ func Init(path string) error {
 		return fmt.Errorf("Could not encode configuration file to TOML.")
 	}
 
+	confPath := filepath.Join(absPath, confFile)
 	if err := ioutil.WriteFile(confPath, buffer.Bytes(), 0644); err != nil {
 		log.Printf("Init: %v\n", err)
 		return fmt.Errorf("Can not write to configuration file")

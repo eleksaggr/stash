@@ -121,8 +121,16 @@ func List(db *gorm.DB, source string) error {
 	entries := []Entry{}
 	db.Where("path LIKE ?", fmt.Sprintf("%s%%", absPath)).Find(&entries)
 
-	for _, entry := range entries {
-		fmt.Printf("%v\n", entry.Path)
+	if len(entries) == 0 {
+		fmt.Printf("No entries found.\n")
+		return nil
+	}
+
+	fmt.Printf("The following entries were found: \n")
+	for i, entry := range entries {
+		name := filepath.Base(entry.Path)
+		date := entry.CreatedAt.Format("2006-01-02 15:04")
+		fmt.Printf("%v: %v\t%v\n", i, name, date)
 	}
 	return nil
 }

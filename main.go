@@ -43,7 +43,7 @@ func main() {
 		return
 	}
 
-	configPath := filepath.Join(homePath, "/.cache/stash/stash.conf")
+	configPath := filepath.Join(homePath, ".config/stash/stash.conf")
 	config, err := readConfig(configPath)
 	if err != nil {
 		fmt.Printf("%v\n", err)
@@ -58,7 +58,7 @@ func main() {
 	dbPath := filepath.Join(config.DataDir, "index.db")
 	db, err := gorm.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Printf("Main: %v\n", err)
+		log.Printf("Main: %v at path %v\n", err, dbPath)
 		fmt.Printf("Can not connect to database.\n")
 		return
 	}
@@ -113,7 +113,7 @@ func initLogging(path string) error {
 	path = filepath.Join(absPath, string(time.Now().Local().Format("2006-02-01")))
 	path += ".log"
 
-	file, err := os.Create(path)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, 0666)
 	if err != nil {
 		return fmt.Errorf("Can not create log file.")
 	}

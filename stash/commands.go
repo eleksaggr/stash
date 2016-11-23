@@ -22,7 +22,7 @@ const (
 	dbFile   = "index.db"
 
 	logDir  = ".cache/stash/logs"
-	confDir = ".cache/stash"
+	confDir = ".config/stash"
 )
 
 // Stash stashes a file or directory by wrapping it into a compressed tar archive.
@@ -168,6 +168,7 @@ func Init(path string) error {
 
 	if err := os.MkdirAll(logPath, 0755); err != nil {
 		log.Printf("Init: %v\n", err)
+		return fmt.Errorf("Can not create log directory")
 	}
 
 	config := Config{
@@ -182,7 +183,13 @@ func Init(path string) error {
 		return fmt.Errorf("Could not encode configuration file to TOML.")
 	}
 
-	confPath := filepath.Join(homePath, confDir, confFile)
+	confPath := filepath.Join(homePath, confDir)
+	if err := os.MkdirAll(confPath, 0755); err != nil {
+		log.Printf("Init: %v\n", err)
+		return fmt.Errorf("Can not create config directory")
+	}
+
+	confPath = filepath.Join(confPath, confFile)
 	if err := ioutil.WriteFile(confPath, buffer.Bytes(), 0644); err != nil {
 		log.Printf("Init: %v\n", err)
 		return fmt.Errorf("Can not write to configuration file")

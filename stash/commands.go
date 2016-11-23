@@ -21,7 +21,8 @@ const (
 	confFile = "stash.conf"
 	dbFile   = "index.db"
 
-	logDir = ".cache/stash/logs"
+	logDir  = ".cache/stash/logs"
+	confDir = ".cache/stash"
 )
 
 // Stash stashes a file or directory by wrapping it into a compressed tar archive.
@@ -165,6 +166,10 @@ func Init(path string) error {
 		return fmt.Errorf("Can not retrieve home directory for current user")
 	}
 
+	if err := os.MkdirAll(logPath, 0755); err != nil {
+		log.Printf("Init: %v\n", err)
+	}
+
 	config := Config{
 		DataDir: absPath,
 		LogDir:  logPath,
@@ -177,7 +182,7 @@ func Init(path string) error {
 		return fmt.Errorf("Could not encode configuration file to TOML.")
 	}
 
-	confPath := filepath.Join(absPath, confFile)
+	confPath := filepath.Join(homePath, confDir, confFile)
 	if err := ioutil.WriteFile(confPath, buffer.Bytes(), 0644); err != nil {
 		log.Printf("Init: %v\n", err)
 		return fmt.Errorf("Can not write to configuration file")

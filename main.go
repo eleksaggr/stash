@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/jinzhu/gorm"
@@ -41,14 +43,20 @@ func main() {
 		return
 	}
 
-	configPath := filepath.Join(homePath, "/.local/share/stash/stash.conf")
+	configPath := filepath.Join(homePath, "/.cache/stash/stash.conf")
 	config, err := readConfig(configPath)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return
 	}
 
-	db, err := gorm.Open("sqlite3", config.DataDir)
+	if err := initLogging(config.LogDir); err != nil {
+		fmt.Printf("Can not access log file.\n")
+		return
+	}
+
+	dbPath := filepath.Join(config.DataDir, "index.db")
+	db, err := gorm.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Printf("Main: %v\n", err)
 		fmt.Printf("Can not connect to database.\n")
@@ -95,4 +103,22 @@ func readConfig(path string) (*stash.Config, error) {
 		return nil, fmt.Errorf("Could not read configuration file. Did you call \"stash init\"?")
 	}
 	return config, nil
+}
+
+func initLogging(path string) error {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	path = filepath.Join(absPath, string(time.Now().Local().Format("2006-02-01")))
+	path += ".log"
+
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("Can not create log file.")
+	}
+
+	log.SetOutput(file)
+	log.Printf("Started logging to file %v\n", absPath)
+	return nil
 }

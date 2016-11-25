@@ -113,7 +113,7 @@ func initLogging(path string) error {
 	path = filepath.Join(absPath, string(time.Now().Local().Format("2006-02-01")))
 	path += ".log"
 
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, 0666)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 	if err != nil {
 		return fmt.Errorf("Can not create log file.")
 	}

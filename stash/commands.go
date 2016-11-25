@@ -42,6 +42,11 @@ func Stash(db *gorm.DB, source string, destination string) error {
 		return err
 	}
 
+	stat, err := os.Stat(absPath)
+	if err != nil {
+		return err
+	}
+
 	entry := &Entry{}
 	db.Where("path = ?", absPath).First(entry)
 	if entry.ID != 0 {
@@ -59,7 +64,7 @@ func Stash(db *gorm.DB, source string, destination string) error {
 		return err
 	}
 
-	entry = &Entry{Path: absPath}
+	entry = &Entry{Path: absPath, IsDir: stat.IsDir()}
 	db.Create(entry)
 
 	workingDir, err := os.Getwd()
@@ -130,7 +135,11 @@ func List(db *gorm.DB, source string) error {
 	for i, entry := range entries {
 		name := filepath.Base(entry.Path)
 		date := entry.CreatedAt.Format("2006-01-02 15:04")
-		fmt.Printf("%v: %v\t%v\n", i, name, date)
+		dirString := "File"
+		if entry.IsDir {
+			dirString = "Directory"
+		}
+		fmt.Printf("%v: %v\t%v\t%v\n", i, name, date, dirString)
 	}
 	return nil
 }
@@ -149,7 +158,7 @@ func Init(path string) error {
 		return fmt.Errorf("Can not find absolute path of \"%v\"", path)
 	}
 
-	if err := os.MkdirAll(absPath, 0644); err != nil {
+	if err := os.MkdirAll(absPath, 0755); err != nil {
 		log.Printf("%v\n", err)
 		return fmt.Errorf("Can not create directory")
 	}

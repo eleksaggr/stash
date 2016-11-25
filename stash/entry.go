@@ -6,5 +6,6 @@ import "github.com/jinzhu/gorm"
 type Entry struct {
 	gorm.Model
 
-	Path string
+	IsDir bool
+	Path  string
 }

@@ -1,4 +1,4 @@
-package stash
+package main
 
 type Config struct {
 	DataDir string

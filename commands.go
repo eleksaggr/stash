@@ -1,4 +1,4 @@
-package stash
+package main
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for GORM
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/zillolo/stash/stash"
 )
 
 const (
@@ -47,7 +48,7 @@ func Stash(db *gorm.DB, source string, destination string) error {
 		return err
 	}
 
-	entry := &Entry{}
+	entry := &stash.Entry{}
 	db.Where("path = ?", absPath).First(entry)
 	if entry.ID != 0 {
 		return errors.New("Entry exist already in database")
@@ -55,16 +56,16 @@ func Stash(db *gorm.DB, source string, destination string) error {
 
 	hasher := sha1.New()
 	log.Printf("Using path: %v\n", absPath)
-	file, err := os.Create(filepath.Join(destination, encodeChecksum(computeChecksum(absPath, hasher), base64.URLEncoding)) + ".tar.gz")
+	file, err := os.Create(filepath.Join(destination, stash.EncodeChecksum(stash.ComputeChecksum(absPath, hasher), base64.URLEncoding)) + ".tar.gz")
 	if err != nil {
 		return err
 	}
 
-	if err := Pack(source, file); err != nil {
+	if err := stash.Pack(source, file); err != nil {
 		return err
 	}
 
-	entry = &Entry{Path: absPath, IsDir: stat.IsDir()}
+	entry = &stash.Entry{Path: absPath, IsDir: stat.IsDir()}
 	db.Create(entry)
 
 	workingDir, err := os.Getwd()
@@ -98,16 +99,16 @@ func Release(db *gorm.DB, source string, target string, destination string) erro
 
 	hasher := sha1.New()
 	log.Printf("Using path: %v\n", absPath)
-	file, err := os.Open(filepath.Join(source, encodeChecksum(computeChecksum(absPath, hasher), base64.URLEncoding)) + ".tar.gz")
+	file, err := os.Open(filepath.Join(source, stash.EncodeChecksum(stash.ComputeChecksum(absPath, hasher), base64.URLEncoding)) + ".tar.gz")
 	if err != nil {
 		return err
 	}
 
-	if err := Unpack(destination, file); err != nil {
+	if err := stash.Unpack(destination, file); err != nil {
 		return err
 	}
 
-	db.Where("path = ?", absPath).Delete(&Entry{})
+	db.Where("path = ?", absPath).Delete(&stash.Entry{})
 
 	return nil
 }
@@ -123,7 +124,7 @@ func List(db *gorm.DB, source string) error {
 		return err
 	}
 
-	entries := []Entry{}
+	entries := []stash.Entry{}
 	db.Where("path LIKE ?", fmt.Sprintf("%s%%", absPath)).Find(&entries)
 
 	if len(entries) == 0 {
@@ -171,8 +172,8 @@ func Init(path string) error {
 		return fmt.Errorf("Can not create database file")
 	}
 
-	if !db.HasTable(&Entry{}) {
-		db.CreateTable(&Entry{})
+	if !db.HasTable(&stash.Entry{}) {
+		db.CreateTable(&stash.Entry{})
 	}
 
 	// Create the log file directory

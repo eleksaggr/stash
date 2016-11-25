@@ -13,7 +13,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for GORM
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/zillolo/stash/stash"
 )
 
 func main() {
@@ -31,7 +30,7 @@ func main() {
 		}
 		target := flag.Arg(1)
 
-		if err := stash.Init(target); err != nil {
+		if err := Init(target); err != nil {
 			fmt.Printf("%v.\n", err)
 		}
 		return
@@ -70,7 +69,7 @@ func main() {
 		if len(flag.Args()) >= 2 {
 			source = flag.Arg(1)
 		}
-		if err := stash.List(db, source); err != nil {
+		if err := List(db, source); err != nil {
 			fmt.Printf("Could not list entries.\nMore info: %v\n", err)
 			log.Printf("%v\n", err)
 		}
@@ -82,7 +81,7 @@ func main() {
 		if len(flag.Args()) >= 3 {
 			destination = flag.Arg(2)
 		}
-		if err := stash.Release(db, source, target, destination); err != nil {
+		if err := Release(db, source, target, destination); err != nil {
 			fmt.Printf("Could not release.\nMore info: %v\n", err)
 			log.Printf("%v\n", err)
 		}
@@ -90,15 +89,15 @@ func main() {
 		source = flag.Arg(1)
 		fallthrough
 	default:
-		if err := stash.Stash(db, source, "/home/alex/.local/share/hidden"); err != nil {
+		if err := Stash(db, source, "/home/alex/.local/share/hidden"); err != nil {
 			fmt.Printf("Could not stash files.\nMore info: %v\n", err)
 			log.Printf("%v\n", err)
 		}
 	}
 }
 
-func readConfig(path string) (*stash.Config, error) {
-	config := new(stash.Config)
+func readConfig(path string) (*Config, error) {
+	config := new(Config)
 	if _, err := toml.DecodeFile(path, config); err != nil {
 		return nil, fmt.Errorf("Could not read configuration file. Did you call \"stash init\"?")
 	}

@@ -98,7 +98,6 @@ func Release(db *gorm.DB, source string, target string, destination string) erro
 	}
 
 	hasher := sha1.New()
-	log.Printf("Using path: %v\n", absPath)
 	file, err := os.Open(filepath.Join(source, stash.EncodeChecksum(stash.ComputeChecksum(absPath, hasher), base64.URLEncoding)) + ".tar.gz")
 	if err != nil {
 		return err
@@ -107,8 +106,10 @@ func Release(db *gorm.DB, source string, target string, destination string) erro
 	if err := stash.Unpack(destination, file); err != nil {
 		return err
 	}
+	log.Printf("Unpacked file %v to %v\n", file.Name(), destination)
 
 	db.Where("path = ?", absPath).Delete(&stash.Entry{})
+	log.Printf("Removed entry with path %v from database\n", absPath)
 
 	return nil
 }

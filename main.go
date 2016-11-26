@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -14,6 +15,8 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for GORM
 	homedir "github.com/mitchellh/go-homedir"
 )
+
+var errNoLog = errors.New("Could not enable logging. Redirecting log output to stdout.")
 
 func main() {
 	flag.Parse()
@@ -50,8 +53,7 @@ func main() {
 	}
 
 	if err := initLogging(config.LogDir); err != nil {
-		fmt.Printf("Can not access log file.\n")
-		return
+		fmt.Printf("%v\n", errNoLog)
 	}
 
 	dbPath := filepath.Join(config.DataDir, "index.db")
@@ -74,7 +76,7 @@ func main() {
 			log.Printf("%v\n", err)
 		}
 	case "release":
-		source = "/home/alex/.local/share/hidden"
+		source = config.DataDir
 		target := flag.Arg(1)
 		destination := "."
 
@@ -89,7 +91,7 @@ func main() {
 		source = flag.Arg(1)
 		fallthrough
 	default:
-		if err := Stash(db, source, "/home/alex/.local/share/hidden"); err != nil {
+		if err := Stash(db, source, config.DataDir); err != nil {
 			fmt.Printf("Could not stash files.\nMore info: %v\n", err)
 			log.Printf("%v\n", err)
 		}
